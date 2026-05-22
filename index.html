@@ -2,31 +2,101 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fun Photo Quiz!</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Fun Learning Games!</title>
     <link rel="stylesheet" href="index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="quiz-container">
-        <h2 id="question">Question will go here</h2>
-        <div class="options">
-            <button class="option" onclick="checkAnswer(this)">
-                <img id="option1-img" src="" alt="Option 1">
-            </button>
-            <button class="option" onclick="checkAnswer(this)">
-                <img id="option2-img" src="" alt="Option 2">
-            </button>
+    <div id="wrong-flash" class="screen-flash wrong-flash" aria-hidden="true"></div>
+    <div id="correct-flash" class="screen-flash correct-flash" aria-hidden="true"></div>
+
+    <div class="sky-bg">
+        <span class="cloud c1"></span>
+        <span class="cloud c2"></span>
+        <span class="cloud c3"></span>
+    </div>
+
+    <header class="top-bar">
+        <button type="button" class="logo" id="logo-btn" aria-label="Go to home">🌈 Fun Learn Play</button>
+        <div id="progress-strip" class="progress-strip hidden">
+            <span class="progress-label">Your wins:</span>
+            <div id="progress-badges" class="progress-badges"></div>
         </div>
-        <button id="submit-btn" style="display: none;">Submit Quiz</button> 
-    </div>
+    </header>
 
-    <div id="results" style="display: none;">
-        <h2>Quiz Results</h2>
-        <p>Correct Answers: <span id="correct-count"></span></p>
-        <p>Wrong Answers: <span id="wrong-count"></span></p>
-        <button id="restart-btn">Restart Quiz</button> 
-    </div>
+    <main id="app">
+        <!-- HOME -->
+        <section id="home-screen" class="screen active">
+            <h1 class="title-bounce">Pick a Game!</h1>
+            <p class="subtitle">Choose your level, then tap a game! 🎮</p>
 
-    <script src="index.js"></script>
+            <div class="level-picker">
+                <p class="level-picker-title">Choose Level</p>
+                <div class="level-buttons" id="level-buttons"></div>
+                <p id="level-hint" class="level-hint"></p>
+            </div>
+
+            <div class="game-grid" id="game-grid"></div>
+            <div id="all-done-banner" class="all-done-banner hidden">
+                <span class="trophy-big">🏆</span>
+                <h2>Super Star!</h2>
+                <p>You finished every game at this level! Change level or Try Again for new questions.</p>
+            </div>
+        </section>
+
+        <!-- GAME -->
+        <section id="game-screen" class="screen">
+            <button id="back-btn" class="back-btn" type="button">← Home</button>
+            <div class="game-header">
+                <h2 id="game-title"></h2>
+                <div class="header-pills">
+                    <span id="level-badge" class="level-badge"></span>
+                    <div class="score-pill">
+                        <span id="q-progress">1 / 10</span>
+                    </div>
+                </div>
+            </div>
+            <div class="progress-bar-wrap">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+
+            <div id="quiz-area" class="quiz-card">
+                <div id="prompt-area" class="prompt-area"></div>
+                <div id="options-area" class="options-area"></div>
+                <button id="next-btn" class="action-btn hidden" type="button">Next →</button>
+            </div>
+
+            <div id="feedback" class="feedback hidden"></div>
+        </section>
+
+        <!-- RESULTS -->
+        <section id="results-screen" class="screen">
+            <div class="results-card pop-in">
+                <div id="medal-display" class="medal-display"></div>
+                <h2 id="results-title">Amazing!</h2>
+                <p id="results-message"></p>
+                <div class="stats-row">
+                    <div class="stat correct-stat">
+                        <span class="stat-num" id="correct-count">0</span>
+                        <span class="stat-label">Correct ✓</span>
+                    </div>
+                    <div class="stat wrong-stat">
+                        <span class="stat-num" id="wrong-count">0</span>
+                        <span class="stat-label">Try again</span>
+                    </div>
+                </div>
+                <div class="results-actions">
+                    <button id="play-again-btn" class="action-btn primary" type="button">Try Again 🎲</button>
+                    <button id="home-btn" class="action-btn secondary" type="button">More Games 🏠</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/data.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
