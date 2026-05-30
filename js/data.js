@@ -103,7 +103,11 @@ const GAMES = [
     { id: 'shape-match', title: 'Shape Match', emoji: '⬛', color: '#FBBF24',
       description: 'Match the shape name!', questionsPerRound: QUESTIONS_PER_ROUND, type: 'shape-match' },
     { id: 'rhyme-time', title: 'Rhyme Time', emoji: '🎵', color: '#C084FC',
-      description: 'Which word rhymes?', questionsPerRound: QUESTIONS_PER_ROUND, type: 'rhyme-time' }
+      description: 'Which word rhymes?', questionsPerRound: QUESTIONS_PER_ROUND, type: 'rhyme-time' },
+    { id: 'number-speak', title: 'Number Speak', emoji: '🔊', color: '#FFB400',
+      description: 'Listen to the number and choose the correct one!', questionsPerRound: QUESTIONS_PER_ROUND, type: 'number-speak' },
+    { id: 'speak-spell', title: 'Speak & Spell', emoji: '🗣️', color: '#10B981',
+      description: 'See the picture, say the spelling out loud!', questionsPerRound: QUESTIONS_PER_ROUND, type: 'speak-spell' }
 ];
 
 const SPELL_QUESTIONS = [
@@ -229,12 +233,52 @@ const GAME_LEVEL_LABELS = {
     'before-after': { easy: '0–20 order', middle: '21–50 order', hard: '51–100 order' },
     'odd-one-out': { easy: 'Easy spot', middle: 'Look closer', hard: 'Super tricky' },
     'shape-match': { easy: '4 basic shapes', middle: 'More shapes', hard: 'Hard shapes' },
-    'rhyme-time': { easy: 'Short rhymes', middle: 'Word rhymes', hard: 'Hard rhymes' }
+    'rhyme-time': { easy: 'Short rhymes', middle: 'Word rhymes', hard: 'Hard rhymes' },
+    'speak-spell': { easy: '3–4 letter words', middle: '5–7 letter words', hard: 'Long words' }
 };
 
 function getGameLevelLabel(gameId, lvl) {
     return GAME_LEVEL_LABELS[gameId]?.[lvl] || LEVELS[lvl].label;
 }
+
+// Expose constants and helper to global scope for app.js
+window.GAMES = GAMES;
+window.LEVELS = LEVELS;
+window.LEVEL_ORDER = LEVEL_ORDER;
+window.GAME_LEVEL_LABELS = GAME_LEVEL_LABELS;
+window.getGameLevelLabel = getGameLevelLabel;
+window.NUMBER_WORDS_STATIC = NUMBER_WORDS_STATIC;
+window.numberToWord = numberToWord;
+window.getNumberWord = getNumberWord;
+window.AVAILABLE_NUMBERS = AVAILABLE_NUMBERS;
+window.EMOJI_FOR_COUNT = EMOJI_FOR_COUNT;
+window.QUESTIONS_PER_ROUND = QUESTIONS_PER_ROUND;
+window.SPELL_QUESTIONS = SPELL_QUESTIONS;
+window.COLOR_QUESTIONS = COLOR_QUESTIONS;
+window.SHAPE_QUESTIONS = SHAPE_QUESTIONS;
+window.RHYME_QUESTIONS = RHYME_QUESTIONS;
+window.ODD_ONE_SETS = ODD_ONE_SETS;
+window.poolForLevel = poolForLevel;
+window.levelSublabel = levelSublabel;
+window.newRoundSeed = newRoundSeed;
+window.shuffle = shuffle;
+window.randInt = randInt;
+window.randFrom = randFrom;
+window.pickUniqueFromPool = pickUniqueFromPool;
+window.numbersInLevel = numbersInLevel;
+window.numberPoolAround = numberPoolAround;
+window.pickOptions = pickOptions;
+window.makeNumberOption = makeNumberOption;
+window.mapNumberOptions = mapNumberOptions;
+window.pickTextOptions = pickTextOptions;
+window.repeatEmoji = repeatEmoji;
+window.formatCountVisual = formatCountVisual;
+window.setLevel = setLevel;
+window.getLevel = getLevel;
+window.randNumberInLevel = randNumberInLevel;
+window.randCountInLevel = randCountInLevel;
+window.generateCountItem = generateCountItem;
+window.generateCompareItem = generateCompareItem;
 
 function poolForLevel(pool, lvl) {
     const tagged = pool.filter(q => q.levels && q.levels.includes(lvl));
@@ -301,13 +345,9 @@ function pickUniqueFromPool(pool, n, keyFn) {
         picked.push(item);
         if (picked.length >= n) break;
     }
-    while (picked.length < n && pool.length) {
-        const extra = randFrom(pool);
-        const key = keyFn ? keyFn(extra) : JSON.stringify(extra);
-        if (!keys.has(key)) {
-            keys.add(key);
-            picked.push(extra);
-        }
+    while (picked.length < n && picked.length > 0) {
+        const extra = randFrom(picked.slice(0, keys.size));
+        picked.push(extra);
     }
     return picked;
 }
@@ -764,18 +804,7 @@ function buildRhymeRound(game) {
     });
 }
 
-const ROUND_BUILDERS = {
-    'count-images': buildCountRound,
-    'number-words': buildNumberWordsRound,
-    'picture-spell': buildSpellRound,
-    'color-fun': buildColorRound,
-    'bigger-smaller': buildCompareRound,
-    'add-fun': buildAddRound,
-    'before-after': buildBeforeAfterRound,
-    'odd-one-out': buildOddOneRound,
-    'shape-match': buildShapeRound,
-    'rhyme-time': buildRhymeRound
-};
+
 
 function getMedal(correct, total) {
     const pct = correct / total;
@@ -805,4 +834,41 @@ function randomWrongMessage() {
 
 function randomCorrectMessage() {
     return CORRECT_MESSAGES[Math.floor(Math.random() * CORRECT_MESSAGES.length)];
+}
+
+function buildSpeakSpellRound(game) {
+    newRoundSeed();
+    const lvl = levelId;
+    const pool = poolForLevel(SPELL_QUESTIONS, lvl);
+    const picked = pickUniqueFromPool(pool, game.questionsPerRound, q => q.word);
+    return picked.map(q => {
+        return {
+            prompt: q.picture,
+            promptType: 'big-emoji',
+            sublabel: `Who is in the picture? Spell it!`,
+            correct: q.word.toUpperCase(),
+            audioText: `Who is this in the picture? Speak the spelling!`
+        };
+    });
+}
+
+// Expose all functions and variables to the global window object to ensure compatibility
+// in all browser sandboxes and script isolation environments.
+const globalsToExpose = {
+    GAMES, LEVELS, LEVEL_ORDER, GAME_LEVEL_LABELS, getGameLevelLabel,
+    setLevel, getLevel, randNumberInLevel, randCountInLevel, generateCountItem,
+    generateCompareItem, generateAddItem, generateBeforeAfter, generateNumberMatchItem,
+    buildCountRound, buildNumberWordsRound, buildSpellRound, buildColorRound,
+    buildCompareRound, buildAddRound, buildBeforeAfterRound, buildOddOneRound,
+    buildShapeRound, buildRhymeRound, buildSpeakSpellRound, getMedal, randomWrongMessage, randomCorrectMessage,
+    newRoundSeed, rand, shuffle, randInt, randFrom, pickUniqueFromPool,
+    numbersInLevel, numberPoolAround, pickOptions, makeNumberOption, mapNumberOptions,
+    pickTextOptions, repeatEmoji, formatCountVisual, getNumberWord, numberToWord,
+    NUMBER_IMAGES, SPELL_QUESTIONS, COLOR_QUESTIONS, SHAPE_QUESTIONS, RHYME_QUESTIONS,
+    ODD_ONE_SETS, EMOJI_FOR_COUNT, NUMBER_WORDS_STATIC, QUESTIONS_PER_ROUND,
+    AVAILABLE_NUMBERS
+};
+
+for (const [key, value] of Object.entries(globalsToExpose)) {
+    window[key] = value;
 }

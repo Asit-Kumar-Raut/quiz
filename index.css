@@ -1022,12 +1022,28 @@ button:focus-visible {
     }
 
     .level-buttons {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        gap: 8px;
+        justify-content: center;
+        width: 100%;
     }
 
     .level-btn {
-        max-width: none;
+        flex: 1;
+        min-width: 0;
+        max-width: 160px;
+        min-height: 60px;
+        padding: 8px 4px;
+        border-radius: 12px;
+    }
+
+    .lvl-emoji {
+        font-size: 1.25rem;
+    }
+
+    .lvl-name {
+        font-size: 0.82rem;
+        margin-top: 2px;
     }
 
     .stats-row {
@@ -1047,3 +1063,95 @@ button:focus-visible {
         animation: none;
     }
 }
+
+/* Speak & Spell Game Styles */
+.speak-spell-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 10px;
+    text-align: center;
+    width: 100%;
+}
+
+.spelling-blanks {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 8px;
+    width: 100%;
+}
+
+.letter-blank {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 56px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 12px;
+    border: 3px solid #dfe6e9;
+    background: #f8f9fa;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.letter-blank.empty {
+    color: #b2bec3;
+    border-style: dashed;
+}
+
+.letter-blank.filled {
+    color: #6c5ce7;
+    border-color: #6c5ce7;
+    background: #f0efff;
+    box-shadow: 0 4px 10px rgba(108, 92, 231, 0.15);
+    animation: letterPopIn 0.25s ease-out;
+}
+
+@keyframes letterPopIn {
+    0% { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.mic-btn {
+    position: relative;
+    max-width: 260px;
+    font-size: 1.15rem;
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    color: white !important;
+    border: none;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+    transition: all 0.2s ease;
+}
+
+.mic-btn.listening {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    animation: pulseMic 1.5s infinite;
+}
+
+@keyframes pulseMic {
+    0% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+}
+
+.mic-status {
+    font-size: 0.95rem;
+    color: #636e72;
+    min-height: 24px;
+    line-height: 1.4;
+    max-width: 90%;
+    margin-top: 5px;
+}
+

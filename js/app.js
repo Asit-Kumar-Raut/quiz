@@ -1,6 +1,24 @@
+const safeStorage = {
+    getItem(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (e) {
+            console.warn('localStorage is not accessible:', e);
+            return null;
+        }
+    },
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, value);
+        } catch (e) {
+            console.warn('localStorage setItem failed:', e);
+        }
+    }
+};
+
 const state = {
     currentGame: null,
-    level: localStorage.getItem('funLearnLevel') || 'easy',
+    level: safeStorage.getItem('funLearnLevel') || 'easy',
     questions: [],
     index: 0,
     correct: 0,
@@ -8,12 +26,27 @@ const state = {
     roundId: 0,
     isBusy: false,
     advanceTimer: null,
-    gameResults: JSON.parse(localStorage.getItem('funLearnResults') || '{}')
+    gameResults: JSON.parse(safeStorage.getItem('funLearnResults') || '{}')
 };
 
 function resultKey(gameId) {
     return `${gameId}_${state.level}`;
 }
+
+const ROUND_BUILDERS = {
+    'count-images': buildCountRound,
+    'number-words': buildNumberWordsRound,
+    'picture-spell': buildSpellRound,
+    'color-fun': buildColorRound,
+    'bigger-smaller': buildCompareRound,
+    'add-fun': buildAddRound,
+    'before-after': buildBeforeAfterRound,
+    'odd-one-out': buildOddOneRound,
+    'shape-match': buildShapeRound,
+    'rhyme-time': buildRhymeRound,
+    'number-speak': buildNumberSpeakRound,
+    'speak-spell': buildSpeakSpellRound
+};
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -57,7 +90,7 @@ function showScreen(name) {
 }
 
 function saveResults() {
-    localStorage.setItem('funLearnResults', JSON.stringify(state.gameResults));
+    safeStorage.setItem('funLearnResults', JSON.stringify(state.gameResults));
 }
 
 function triggerWrongFlash() {
@@ -114,7 +147,7 @@ function selectLevel(id) {
     if (!LEVELS[id] || state.level === id || state.isBusy) return;
     state.level = id;
     setLevel(id);
-    localStorage.setItem('funLearnLevel', id);
+    safeStorage.setItem('funLearnLevel', id);
     renderLevelPicker();
     renderHome();
 }
@@ -166,6 +199,13 @@ function updateProgressStrip() {
 function startGame(gameId) {
     if (state.isBusy) return;
 
+    if (recognition) {
+        try { recognition.abort(); } catch (e) {}
+    }
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
+
     const game = GAMES.find(g => g.id === gameId);
     if (!game) return;
 
@@ -211,7 +251,153 @@ function startGame(gameId) {
     state.isBusy = false;
 }
 
+function speakText(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const utter = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    
+    // 1. Search for en-IN female voice
+    let selectedVoice = voices.find(v => {
+        const lang = v.lang.toLowerCase().replace('_', '-');
+        const name = v.name.toLowerCase();
+        return lang === 'en-in' && (name.includes('female') || name.includes('sangeeta') || name.includes('heera') || name.includes('neerja') || name.includes('veena') || name.includes('google'));
+    });
+    
+    // 2. Search for any en-IN voice
+    if (!selectedVoice) {
+        selectedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith('en-in'));
+    }
+    
+    // 3. Search for any English female voice
+    if (!selectedVoice) {
+        selectedVoice = voices.find(v => {
+            const lang = v.lang.toLowerCase().replace('_', '-');
+            const name = v.name.toLowerCase();
+            return lang.startsWith('en') && (name.includes('female') || name.includes('zira') || name.includes('samantha') || name.includes('karen') || name.includes('moira') || name.includes('tessa'));
+        });
+    }
+    
+    if (selectedVoice) {
+        utter.voice = selectedVoice;
+    }
+    
+    utter.rate = 0.70; // slowly and clearly
+    utter.pitch = 1.1; // clear, friendly pitch
+    utter.lang = 'en-IN'; // Indian English
+    
+    window.speechSynthesis.speak(utter);
+}
+
+let recognition = null;
+function parseSpokenInput(transcript, correctWord) {
+    const cleaned = transcript.trim().toUpperCase();
+    
+    // 1. If they said the exact word itself
+    if (cleaned === correctWord) {
+        return correctWord;
+    }
+    
+    // 2. Map phonetic letter-by-letter words
+    const words = transcript.toLowerCase().split(/[\s\-\.]+/);
+    let spellingResult = '';
+    
+    const LETTER_MAP = {
+        'a': 'A', 'b': 'B', 'c': 'C', 'd': 'D', 'e': 'E', 'f': 'F', 'g': 'G', 'h': 'H', 'i': 'I', 'j': 'J',
+        'k': 'K', 'l': 'L', 'm': 'M', 'n': 'N', 'o': 'O', 'p': 'P', 'q': 'Q', 'r': 'R', 's': 'S', 't': 'T',
+        'u': 'U', 'v': 'V', 'w': 'W', 'x': 'X', 'y': 'Y', 'z': 'Z',
+        'bee': 'B', 'be': 'B',
+        'see': 'C', 'sea': 'C', 'she': 'C',
+        'dee': 'D',
+        'gee': 'G',
+        'aitch': 'H',
+        'eye': 'I',
+        'jay': 'J',
+        'kay': 'K',
+        'el': 'L',
+        'em': 'M',
+        'en': 'N',
+        'oh': 'O',
+        'pee': 'P',
+        'cue': 'Q', 'queue': 'Q',
+        'are': 'R',
+        'es': 'S',
+        'tee': 'T', 'tea': 'T', 'to': 'T', 'two': 'T',
+        'you': 'U',
+        'vee': 'V',
+        'double you': 'W',
+        'ex': 'X',
+        'why': 'Y',
+        'zee': 'Z', 'zed': 'Z'
+    };
+    
+    for (const w of words) {
+        if (!w) continue;
+        if (LETTER_MAP[w]) {
+            spellingResult += LETTER_MAP[w];
+        } else if (w.length === 1 && w >= 'a' && w <= 'z') {
+            spellingResult += w.toUpperCase();
+        }
+    }
+    
+    // 3. If spellingResult has letters, return it
+    if (spellingResult.length > 0) {
+        return spellingResult;
+    }
+    
+    // 4. Default fallback: just strip spaces and keep alphanumeric
+    return cleaned.replace(/[^A-Z]/g, '');
+}
+
+function startSpeechRecognition(correctWord, onUpdate, onComplete, onError) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        onError("not-supported");
+        return;
+    }
+    
+    if (recognition) {
+        try { recognition.abort(); } catch (e) {}
+    }
+    
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-IN';
+    
+    recognition.onstart = () => {
+        onUpdate({ status: 'listening', text: '' });
+    };
+    
+    recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            transcript += event.results[i][0].transcript;
+        }
+        
+        let parsed = parseSpokenInput(transcript, correctWord);
+        onUpdate({ status: 'interim', text: parsed, raw: transcript });
+    };
+    
+    recognition.onerror = (event) => {
+        onError(event.error);
+    };
+    
+    recognition.onend = () => {
+        onComplete();
+    };
+    
+    recognition.start();
+}
+
 function renderQuestion() {
+    if (recognition) {
+        try { recognition.abort(); } catch (e) {}
+    }
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
     const q = state.questions[state.index];
     if (!q) return;
 
@@ -226,6 +412,11 @@ function renderQuestion() {
     optionsArea.innerHTML = '';
     state.answered = false;
     $('#next-btn').classList.add('hidden');
+    
+    const repeatBtn = $('#repeat-btn');
+    if (repeatBtn) {
+        repeatBtn.classList.remove('hidden');
+    }
 
     promptArea.classList.remove('pop-in');
     void promptArea.offsetWidth;
@@ -256,6 +447,7 @@ function renderQuestion() {
         promptHtml += `<p class="sublabel">${q.sublabel}</p>`;
     }
     promptArea.innerHTML = promptHtml;
+    promptArea.dataset.audio = q.audioText || '';
 
     const bindOption = (btn, answer) => {
         btn.dataset.answer = answer;
@@ -264,6 +456,112 @@ function renderQuestion() {
             handleAnswer(btn, answer);
         });
     };
+
+    if (state.currentGame?.id === 'speak-spell') {
+        const correctWord = q.correct.toUpperCase();
+        
+        let blanksHtml = '';
+        for (let i = 0; i < correctWord.length; i++) {
+            blanksHtml += `<span class="letter-blank empty" id="blank-${i}">_</span>`;
+        }
+        
+        optionsArea.className = 'options-area speak-spell-area';
+        optionsArea.innerHTML = `
+            <div class="speak-spell-container">
+                <div class="spelling-blanks">
+                    ${blanksHtml}
+                </div>
+                <button type="button" class="action-btn primary mic-btn tap-btn" id="mic-btn">
+                    🎤 Start Speaking
+                </button>
+                <div class="mic-status" id="mic-status">Tap the microphone and spell the word!</div>
+            </div>
+        `;
+        
+        const micBtn = $('#mic-btn');
+        const micStatus = $('#mic-status');
+        
+        micBtn.addEventListener('click', () => {
+            if (micBtn.classList.contains('listening')) {
+                if (recognition) {
+                    recognition.stop();
+                }
+                return;
+            }
+            
+            micBtn.classList.add('listening');
+            micBtn.innerHTML = '🛑 Listening... 👂';
+            
+            startSpeechRecognition(
+                correctWord,
+                (data) => {
+                    if (data.status === 'interim') {
+                        const text = data.text;
+                        for (let i = 0; i < correctWord.length; i++) {
+                            const blank = $(`#blank-${i}`);
+                            if (blank) {
+                                if (i < text.length) {
+                                    blank.textContent = text[i];
+                                    blank.classList.remove('empty');
+                                    blank.classList.add('filled');
+                                } else {
+                                    blank.textContent = '_';
+                                    blank.classList.remove('filled');
+                                    blank.classList.add('empty');
+                                }
+                            }
+                        }
+                        micStatus.textContent = `I heard: "${data.raw}"`;
+                    }
+                },
+                () => {
+                    micBtn.classList.remove('listening');
+                    micBtn.innerHTML = '🎤 Start Speaking';
+                    
+                    let spokenWord = '';
+                    for (let i = 0; i < correctWord.length; i++) {
+                        const blank = $(`#blank-${i}`);
+                        if (blank && blank.textContent !== '_') {
+                            spokenWord += blank.textContent;
+                        }
+                    }
+                    
+                    if (spokenWord === correctWord) {
+                        handleAnswer(micBtn, q.correct);
+                    } else {
+                        micStatus.textContent = `You spelled: "${spokenWord || 'nothing'}". Correct spelling is ${correctWord}! Let's try again!`;
+                        speakText(`Almost! Try spelling it: ${correctWord.split('').join(' ')}`);
+                        
+                        setTimeout(() => {
+                            for (let i = 0; i < correctWord.length; i++) {
+                                const blank = $(`#blank-${i}`);
+                                if (blank) {
+                                    blank.textContent = '_';
+                                    blank.classList.remove('filled');
+                                    blank.classList.add('empty');
+                                }
+                            }
+                            micStatus.textContent = 'Tap the microphone and spell the word!';
+                        }, 2500);
+                    }
+                },
+                (err) => {
+                    micBtn.classList.remove('listening');
+                    micBtn.innerHTML = '🎤 Start Speaking';
+                    if (err === 'not-allowed') {
+                        micStatus.textContent = 'Microphone access denied. Please allow mic in settings!';
+                    } else {
+                        micStatus.textContent = `Microphone timed out. Tap again to try!`;
+                    }
+                }
+            );
+        });
+        
+        if (q.audioText) {
+            setTimeout(() => speakText(q.audioText), 150);
+        }
+        return;
+    }
 
     if (q.promptType === 'compare') {
         const wrap = document.createElement('div');
@@ -321,6 +619,10 @@ function renderQuestion() {
         bindOption(btn, opt.answer);
         optionsArea.appendChild(btn);
     });
+
+    if (state.currentGame?.id === 'number-speak' && q.audioText) {
+        setTimeout(() => speakText(q.audioText), 150);
+    }
 }
 
 function handleAnswer(btn, answer) {
@@ -332,13 +634,13 @@ function handleAnswer(btn, answer) {
 
     if (isCorrect) {
         state.correct++;
-        btn.classList.add('correct');
+        if (btn) btn.classList.add('correct');
         showFeedback(randomCorrectMessage(), 'good');
         triggerCorrectFlash();
         spawnStars();
         playTone(523, 0.1);
     } else {
-        btn.classList.add('wrong');
+        if (btn) btn.classList.add('wrong');
         document.querySelectorAll('#options-area .option-btn').forEach(b => {
             if (b.dataset.answer === q.correct) b.classList.add('correct');
         });
@@ -351,6 +653,12 @@ function handleAnswer(btn, answer) {
         b.disabled = true;
         b.classList.add('is-locked');
     });
+
+    const micBtn = $('#mic-btn');
+    if (micBtn) {
+        micBtn.disabled = true;
+        micBtn.classList.add('is-locked');
+    }
 
     const isLast = state.index >= state.questions.length - 1;
     const nextBtn = $('#next-btn');
@@ -366,6 +674,8 @@ function handleAnswer(btn, answer) {
             renderQuestion();
         }, isCorrect ? 750 : 1200);
     }
+    const repeatBtn = $('#repeat-btn');
+    if (repeatBtn) repeatBtn.classList.add('hidden');
 }
 
 function showFeedback(text, type) {
@@ -427,6 +737,79 @@ function launchConfetti() {
     }
 }
 
+function buildNumberWordsRound(game) {
+    newRoundSeed();
+    const lvl = state.level;
+    const used = new Set();
+    const items = [];
+    
+    if (lvl === 'hard') {
+        while (items.length < game.questionsPerRound) {
+            const n = randNumberInLevel(lvl);
+            const key = `nw-${n}`;
+            if (used.has(key)) continue;
+            used.add(key);
+            items.push({ count: n, pool: numberPoolAround(n, lvl), wordMode: true });
+        }
+        return items.map(q => {
+            const correctWord = getNumberWord(q.count);
+            const pool = pickOptions(q.count, q.pool, 4, lvl).map(n => getNumberWord(n));
+            const wordOptions = pickTextOptions(correctWord, pool, 4);
+            return {
+                prompt: `<span class="number-huge">${q.count}</span>`,
+                promptType: 'math-big',
+                sublabel: 'Which WORD is this number?',
+                options: wordOptions.map(w => ({ type: 'text', value: w, answer: w })),
+                correct: correctWord
+            };
+        });
+    }
+    
+    while (items.length < game.questionsPerRound) {
+        items.push(generateCountItem(used, lvl));
+    }
+    return items.map(q => {
+        const pool = numberPoolAround(q.count, lvl).map(n => getNumberWord(n));
+        const correctWord = getNumberWord(q.count);
+        const wordOptions = pickTextOptions(correctWord, pool, 4);
+        const maxShow = lvl === 'easy' ? 12 : 18;
+        const prompt = q.useGroups
+            ? formatCountVisual(q.emoji, q.count, lvl)
+            : repeatEmoji(q.emoji, q.count, maxShow);
+        return {
+            prompt,
+            promptType: 'emoji-row',
+            sublabel: 'Which word matches the count?',
+            options: wordOptions.map(w => ({ type: 'text', value: w, answer: w })),
+            correct: correctWord
+        };
+    });
+}
+
+function buildNumberSpeakRound(game) {
+    newRoundSeed();
+    const lvl = state.level;
+    const used = new Set();
+    const items = [];
+    while (items.length < game.questionsPerRound) {
+        const n = randNumberInLevel(lvl);
+        const key = `ns-${n}`;
+        if (used.has(key)) continue;
+        used.add(key);
+        items.push({ count: n });
+    }
+    return items.map(q => {
+        const opts = pickOptions(q.count, numberPoolAround(q.count, lvl), 4, lvl);
+        return {
+            prompt: '',
+            promptType: 'math-big',
+            audioText: String(q.count),
+            options: mapNumberOptions(opts),
+            correct: String(q.count)
+        };
+    });
+}
+
 function playTone(freq, duration, type = 'sine') {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -444,6 +827,12 @@ function playTone(freq, duration, type = 'sine') {
 }
 
 function goHome() {
+    if (recognition) {
+        try { recognition.abort(); } catch (e) {}
+    }
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+    }
     clearAdvanceTimer();
     state.isBusy = false;
     state.answered = true;
@@ -463,6 +852,7 @@ function initApp() {
     });
 
     $('#back-btn')?.addEventListener('click', goHome);
+    $('#all-games-btn')?.addEventListener('click', goHome);
     $('#home-btn')?.addEventListener('click', goHome);
 
     $('#play-again-btn')?.addEventListener('click', () => {
@@ -473,12 +863,21 @@ function initApp() {
         if (!state.answered) return;
         showResults();
     });
+    // Repeat button to read out the prompt (e.g., number) using SpeechSynthesis
+    $('#repeat-btn')?.addEventListener('click', () => {
+        const promptEl = $('#prompt-area');
+        if (!promptEl) return;
+        const text = promptEl.dataset.audio || promptEl.textContent.trim();
+        if (!text) return;
+        speakText(text);
+    });
 
     $('#logo-btn')?.addEventListener('click', () => {
         if (document.body.dataset.screen !== 'home') goHome();
     });
 
     setLevel(state.level);
+    showScreen('home');
     renderHome();
 }
 
