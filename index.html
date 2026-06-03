@@ -3,96 +3,285 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Fun Learning Games!</title>
+    <title>learn with fun</title>
     <link rel="stylesheet" href="index.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Full-screen feedback overlays -->
     <div id="wrong-flash" class="screen-flash wrong-flash" aria-hidden="true"></div>
     <div id="correct-flash" class="screen-flash correct-flash" aria-hidden="true"></div>
 
+    <!-- Drifting clouds background -->
     <div class="sky-bg">
         <span class="cloud c1"></span>
         <span class="cloud c2"></span>
         <span class="cloud c3"></span>
     </div>
 
+    <!-- Top Header Navigation Bar -->
     <header class="top-bar">
-        <button type="button" class="logo" id="logo-btn" aria-label="Go to home">🌈 Fun Learn Play</button>
-        <div id="progress-strip" class="progress-strip hidden">
-            <span class="progress-label">Your wins:</span>
-            <div id="progress-badges" class="progress-badges"></div>
+        <button type="button" class="logo" id="logo-btn">🌈 Fun Learn Play</button>
+        <div class="header-controls">
+            <button type="button" id="sound-toggle" class="header-btn sound-btn" aria-label="Toggle sound">
+                🔊 Voice On
+            </button>
+            <button type="button" id="home-nav-btn" class="header-btn home-btn hidden">
+                🏠 Main Menu
+            </button>
         </div>
-        <button type="button" id="all-games-btn" class="action-btn" aria-label="All Games">All Games</button>
     </header>
 
+    <!-- Voice Name Collection Popup Modal -->
+    <div id="name-modal-popup" class="modal-overlay hidden">
+        <div class="modal-card-3d pop-in">
+            <div class="card-glow"></div>
+            <span class="modal-icon animate-float">🤖</span>
+            <h3>Welcome to fun learn play</h3>
+            <p>I am Aiko! What is your name? Tap the microphone and say it, or type it below!</p>
+            
+            <div class="voice-input-container">
+                <button type="button" id="name-mic-btn" class="mic-collect-btn tap-3d">🎤 Say Name</button>
+                <div id="name-mic-status" class="mic-status-label">Click to start speaking...</div>
+            </div>
+
+            <div class="text-input-container">
+                <input type="text" id="name-text-input" placeholder="Type your name here..." maxlength="15">
+            </div>
+
+            <button type="button" id="confirm-name-btn" class="action-btn primary tap-3d">Let's Go! 🚀</button>
+        </div>
+    </div>
+
+    <!-- Floating SVG Mascot Aiko -->
+    <div class="aiko-container" id="aiko-container">
+        <div class="aiko-mascot" id="aiko-mascot">
+            <svg viewBox="0 0 100 100" class="aiko-svg">
+                <defs>
+                    <linearGradient id="aiko-metal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#a8edea" />
+                        <stop offset="100%" stop-color="#fed6e3" />
+                    </linearGradient>
+                    <linearGradient id="aiko-screen-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stop-color="#f8f9fa" />
+                        <stop offset="100%" stop-color="#e2e8f0" />
+                    </linearGradient>
+                    <filter id="aiko-glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="1.5" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                </defs>
+                <ellipse cx="50" cy="92" rx="20" ry="4" class="aiko-shadow" />
+                <g class="aiko-body-group">
+                    <path d="M50 30 L50 15" stroke="#6c5ce7" stroke-width="3.5" stroke-linecap="round" />
+                    <circle cx="50" cy="11" r="5.5" class="aiko-light" id="aiko-antenna-light" />
+                    <rect x="23" y="23" width="54" height="46" rx="18" class="aiko-head" fill="url(#aiko-metal-grad)" stroke="#6c5ce7" stroke-width="2" />
+                    <rect x="29" y="29" width="42" height="30" rx="10" class="aiko-face" fill="url(#aiko-screen-grad)" stroke="#6c5ce7" stroke-width="1.5" />
+                    <circle cx="41" cy="40" r="4.5" class="aiko-eye eye-left" fill="#6c5ce7" />
+                    <circle cx="59" cy="40" r="4.5" class="aiko-eye eye-right" fill="#6c5ce7" />
+                    <path d="M43 51 Q50 51 57 51" stroke="#6c5ce7" stroke-width="3.5" stroke-linecap="round" fill="none" class="aiko-mouth" id="aiko-mouth" />
+                    <circle cx="34" cy="47" r="3" class="aiko-cheek-left" />
+                    <circle cx="66" cy="47" r="3" class="aiko-cheek-right" />
+                    <rect x="18" y="38" width="5" height="16" rx="2.5" class="aiko-ear" fill="#6c5ce7" />
+                    <rect x="77" y="38" width="5" height="16" rx="2.5" class="aiko-ear" fill="#6c5ce7" />
+                </g>
+            </svg>
+        </div>
+        <div class="aiko-speech-bubble" id="aiko-speech">
+            <div class="speech-arrow"></div>
+            <p id="aiko-text">Hello! I'm Aiko! Click on me to hear me speak! 🌟</p>
+        </div>
+    </div>
+
+    <!-- Main Content App Wrap -->
     <main id="app">
-        <!-- HOME -->
-        <section id="home-screen" class="screen active">
+        
+        <!-- SCREEN 1: PORTAL SELECTION (SMALL vs BIG CHILDREN) -->
+        <section id="portal-select-screen" class="screen active">
+           <marque direction="left" ></marque><h1 class="title-bounce">Welcome to fun learn play!!!!!!</h1></marquee>
+            <p class="subtitle-text" id="welcome-explorer-tag">Choose your learning portal to start the fun!</p>
+            
+            <div class="mode-grid">
+                <button type="button" class="mode-card gk-mode tap-3d" id="select-small-portal-btn">
+                    <div class="card-glow"></div>
+                    <span class="mode-emoji animate-float">🎈</span>
+                    <span class="mode-title">For Small Children</span>
+                    <span class="mode-desc">Age 2–6 · Simple counting, spellings, shapes, colors and rhyming games!</span>
+                </button>
+                
+                <button type="button" class="mode-card math-mode tap-3d" id="select-big-portal-btn">
+                    <div class="card-glow"></div>
+                    <span class="mode-emoji animate-float">🪐</span>
+                    <span class="mode-title">For Big Children</span>
+                    <span class="mode-desc">Age 7–11 · 3D space GK, Abacus values & math drawing challenges!</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: SMALL CHILDREN PORTAL HOME (CLASSIC GAMES DASHBOARD) -->
+        <section id="small-home-screen" class="screen">
+            <button type="button" class="back-link" id="small-home-back-btn">← Switch Portal</button>
             <h1 class="title-bounce">Pick a Game!</h1>
-            <p class="subtitle">Choose your level, then tap a game! 🎮</p>
+            <p class="subtitle-text">Choose your difficulty level, then tap a game to play!</p>
 
-            <div class="level-picker">
-                <p class="level-picker-title">Choose Level</p>
-                <div class="level-buttons" id="level-buttons"></div>
-                <p id="level-hint" class="level-hint"></p>
+            <div class="level-picker-box">
+                <p class="picker-label">Select Game Level:</p>
+                <div class="level-buttons" id="classic-level-buttons">
+                    <button type="button" class="setup-btn level-btn tap-3d active" data-lvl="easy">🌱 Easy</button>
+                    <button type="button" class="setup-btn level-btn tap-3d" data-lvl="middle">⭐ Middle</button>
+                    <button type="button" class="setup-btn level-btn tap-3d" data-lvl="hard">🔥 Hard</button>
+                </div>
+                <p id="classic-level-hint" class="level-description-text">Numbers 0–20 · Short words · Simple colors & shapes</p>
             </div>
 
-            <div class="game-grid" id="game-grid"></div>
-            <div id="all-done-banner" class="all-done-banner hidden">
-                <span class="trophy-big">🏆</span>
-                <h2>Super Star!</h2>
-                <p>You finished every game at this level! Change level or Try Again for new questions.</p>
+            <div class="games-layout-grid" id="classic-games-grid">
+                <!-- Classic games loaded dynamically -->
             </div>
         </section>
 
-        <!-- GAME -->
+        <!-- SCREEN 3: BIG CHILDREN PORTAL HOME (GAMES SELECTION GRID) -->
+        <section id="big-home-screen" class="screen">
+            <button type="button" class="back-link" id="big-home-back-btn">← Switch Portal</button>
+            <h1 class="title-bounce">Choose a Quest!</h1>
+            <p class="subtitle-text">Choose your game mode to start the adventure!</p>
+
+            <div class="games-layout-grid">
+                <button type="button" class="game-block-card tap-3d" id="big-select-gk" style="--game-color:#FF6B9D">
+                    <span class="game-block-emoji">🪐</span>
+                    <span class="game-block-title">Planet GK Quiz</span>
+                    <span class="game-block-desc">Explore the solar system & science with real photos!</span>
+                </button>
+                <button type="button" class="game-block-card tap-3d" id="big-select-abacus-vis" style="--game-color:#4ECDC4">
+                    <span class="game-block-emoji">🧮</span>
+                    <span class="game-block-title">Abacus Visualization</span>
+                    <span class="game-block-desc">Look at the abacus beads and identify the value!</span>
+                </button>
+                <button type="button" class="game-block-card tap-3d" id="big-select-abacus-arith" style="--game-color:#FFE66D">
+                    <span class="game-block-emoji">➕</span>
+                    <span class="game-block-title">Abacus Arithmetic</span>
+                    <span class="game-block-desc">Solve addition & subtraction worksheets by drawing answers!</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 4: BIG CHILDREN CONFIGURATION -->
+        <section id="setup-screen" class="screen">
+            <button type="button" class="back-link" id="setup-back-btn">← Back to Quests</button>
+            <h2 class="section-title">Configure Your Quest</h2>
+            
+            <!-- Class division selector -->
+            <div class="setup-group">
+                <p class="group-label">1. Choose Your Class Division:</p>
+                <div class="class-buttons" id="class-buttons">
+                    <button type="button" class="setup-btn class-btn tap-3d" data-class="2">Class 2</button>
+                    <button type="button" class="setup-btn class-btn tap-3d" data-class="3">Class 3</button>
+                    <button type="button" class="setup-btn class-btn tap-3d" data-class="4">Class 4</button>
+                    <button type="button" class="setup-btn class-btn tap-3d" data-class="5">Class 5</button>
+                </div>
+            </div>
+
+            <!-- Difficulty Selector -->
+            <div class="setup-group">
+                <p class="group-label">2. Select Difficulty Level:</p>
+                <div class="level-buttons" id="setup-level-buttons">
+                    <button type="button" class="setup-btn level-btn tap-3d easy" data-lvl="easy">🌱 Easy</button>
+                    <button type="button" class="setup-btn level-btn tap-3d medium" data-lvl="medium">⚡ Medium</button>
+                    <button type="button" class="setup-btn level-btn tap-3d hard" data-lvl="hard">🔥 Hard</button>
+                </div>
+                <p id="level-description-hint" class="level-description-text"></p>
+            </div>
+
+            <!-- Timer Selector -->
+            <div class="setup-group">
+                <p class="group-label">3. Select Timer Settings:</p>
+                <div class="timer-mode-buttons">
+                    <button type="button" class="setup-btn timer-mode-btn tap-3d active" id="timer-mode-on-btn">⏱️ Timer Mode (15s)</button>
+                    <button type="button" class="setup-btn timer-mode-btn tap-3d" id="timer-mode-off-btn">Practice (No Timer)</button>
+                </div>
+            </div>
+
+            <button type="button" class="action-btn primary tap-3d" id="start-quest-btn">Start Game 🚀</button>
+        </section>
+
+        <!-- SCREEN 5: GAMEPLAY SCREEN -->
         <section id="game-screen" class="screen">
-            <button id="back-btn" class="back-btn" type="button">← Home</button>
-            <div class="game-header">
-                <h2 id="game-title"></h2>
-                <div class="header-pills">
-                    <span id="level-badge" class="level-badge"></span>
-                    <div class="score-pill">
-                        <span id="q-progress">1 / 10</span>
+            <div class="game-hud">
+                <button type="button" class="hud-back-btn" id="game-back-btn">← Quit</button>
+                <div class="hud-info">
+                    <span id="hud-game-mode" class="hud-badge">🪐 GK</span>
+                    <span id="hud-class-level" class="hud-badge">Class 3 · Easy</span>
+                </div>
+                <div class="hud-score-tracker">
+                    Question: <span id="hud-q-index">1/5</span>
+                </div>
+            </div>
+
+            <div class="progress-bar-container">
+                <div id="game-progress-fill" class="progress-fill-bar"></div>
+            </div>
+
+            <!-- Gameplay Stage Card -->
+            <div class="deck-3d">
+                <div class="card-3d" id="game-card-3d">
+                    <div class="card-face card-front">
+                        <!-- GK / Abacus 10-Second Timer -->
+                        <div class="timer-container hidden" id="timer-box">
+                            <svg class="timer-svg" viewBox="0 0 40 40">
+                                <circle class="timer-bg-circle" cx="20" cy="20" r="17" />
+                                <circle class="timer-fill-circle" id="timer-ring" cx="20" cy="20" r="17" />
+                            </svg>
+                            <span class="timer-text" id="timer-value">10</span>
+                        </div>
+                        
+                        <!-- Dynamic prompt area shared by classic and big games -->
+                        <div id="prompt-area" class="prompt-area"></div>
                     </div>
                 </div>
             </div>
-            <div class="progress-bar-wrap">
-                <div id="progress-fill" class="progress-fill"></div>
-            </div>
 
-            <div id="quiz-area" class="quiz-card">
-                <div id="prompt-area" class="prompt-area"></div>
-                <div id="options-area" class="options-area"></div>
-                <button id="repeat-btn" class="action-btn hidden" type="button">🔊 Repeat</button>
-                <button id="next-btn" class="action-btn hidden" type="button">Next →</button>
-            </div>
+            <!-- MCQ Options grid -->
+            <div class="options-grid-3d" id="options-area"></div>
 
-            <div id="feedback" class="feedback hidden"></div>
+            <!-- Handwriting drawing canvases (Abacus Arithmetic only) -->
+            <div id="abacus-drawing-zone" class="drawing-zone hidden">
+                <p class="drawing-instruction-label">Draw your answer directly in the boxes below:</p>
+                
+                <div class="canvas-grid-container" id="canvases-container"></div>
+
+                <div class="drawing-actions">
+                    <button type="button" class="draw-action-btn clear-btn tap-3d" id="clear-canvases-btn">🧹 Clear Writing</button>
+                    <button type="button" class="draw-action-btn check-btn tap-3d" id="check-answer-btn">Check Answer ✓</button>
+                </div>
+            </div>
+            
+            <button type="button" class="action-btn next-question-btn hidden" id="next-question-btn">Next Question →</button>
         </section>
 
-        <!-- RESULTS -->
+        <!-- SCREEN 6: RESULTS SCREEN -->
         <section id="results-screen" class="screen">
-            <div class="results-card pop-in">
-                <div id="medal-display" class="medal-display"></div>
-                <h2 id="results-title">Amazing!</h2>
-                <p id="results-message"></p>
-                <div class="stats-row">
-                    <div class="stat correct-stat">
-                        <span class="stat-num" id="correct-count">0</span>
-                        <span class="stat-label">Correct ✓</span>
+            <div class="results-card-3d pop-in">
+                <div class="card-glow"></div>
+                <div id="results-medal-container" class="medal-3d-wrap"></div>
+                
+                <h2 id="results-headline">Outstanding!</h2>
+                <p id="results-summary-text"></p>
+
+                <div class="results-stats-dashboard">
+                    <div class="stat-block correct-block">
+                        <span class="stat-value" id="res-correct-count">0</span>
+                        <span class="stat-desc">Correct ✓</span>
                     </div>
-                    <div class="stat wrong-stat">
-                        <span class="stat-num" id="wrong-count">0</span>
-                        <span class="stat-label">Try again</span>
+                    <div class="stat-block incorrect-block">
+                        <span class="stat-value" id="res-wrong-count">0</span>
+                        <span class="stat-desc">Try Again</span>
                     </div>
                 </div>
-                <div class="results-actions">
-                    <button id="play-again-btn" class="action-btn primary" type="button">Try Again 🎲</button>
-                    <button id="home-btn" class="action-btn secondary" type="button">More Games 🏠</button>
+
+                <div class="results-action-row">
+                    <button type="button" class="action-btn primary tap-3d" id="play-again-btn">Try Again 🎲</button>
+                    <button type="button" class="action-btn secondary tap-3d" id="go-home-btn">Adventure Menu 🏠</button>
                 </div>
             </div>
         </section>
